@@ -1,0 +1,34 @@
+# Byte-compiled / optimized / compiled files
+__pycache__/
+*.pyc
+*.pyd
+*.pyo
+
+# Virtual environment
+venv/
+env/
+.venv/
+
+# Editor/IDE files
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Build artifacts
+dist/
+build/
+*.egg-info/
+*.whl
+
+# Logs and databases
+*.log
+db.sqlite3
+
+# Temporary files
+*~
+.#*
+
+# Configuration files (if they contain sensitive data and are not meant to be committed)
+.env
+config.ini
