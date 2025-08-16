@@ -6,9 +6,12 @@ from sqlalchemy.orm import Session
 
 from security import auth
 from fastapi.security import OAuth2PasswordRequestForm
+
 from pydantic import BaseModel
 from datetime import datetime, timedelta
+
 from typing import Annotated
+from fastapi.middleware.cors import CORSMiddleware
 #pydentic schema for creating a product(request body)
 class ProductCreate(BaseModel):
     name: str
@@ -84,6 +87,20 @@ app = FastAPI(
     title="AI-Enahnced E-commerce API",
     description = "Backend for a smart e-commerce",
     version="0.1.0",
+)
+
+#below adds middlware to handle CORS
+origins=[
+    "http://localhost",
+    "http://localhost:5173",
+
+]
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,  # Allows all origins
+    allow_credentials=True,
+    allow_methods=["*"],  # Allows all methods (GET, POST, etc.)
+    allow_headers=["*"],  # Allows all headers
 )
 
 # Create the database tables when the application starts

@@ -8,9 +8,11 @@ cryptography==45.0.6
 dnspython==2.7.0
 ecdsa==0.19.1
 email_validator==2.2.0
+environs==14.3.0
 fastapi==0.116.1
 fastapi-cli==0.0.8
 fastapi-cloud-cli==0.1.5
+fastapi_cors==0.0.6
 greenlet==3.2.4
 h11==0.16.0
 httpcore==1.0.9
@@ -21,6 +23,7 @@ itsdangerous==2.2.0
 Jinja2==3.1.6
 markdown-it-py==4.0.0
 MarkupSafe==3.0.2
+marshmallow==4.0.0
 mdurl==0.1.2
 orjson==3.11.2
 passlib==1.7.4
