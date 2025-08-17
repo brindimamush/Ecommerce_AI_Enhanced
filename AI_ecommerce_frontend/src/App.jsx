@@ -1,70 +1,15 @@
 import { useState, useEffect } from 'react';
 import Auth from './components/Auth';
+import ProductList from './components/ProductList';
+import Cart from './components/Cart'
 import './App.css';
-
-// Extract Product list logic into its own component
-function ProductList({ token }) {
-  const [products, setProducts] = useState([]);
-  const [error, setError] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        const headers = {};
-        if (token) {
-          // Adds authorization header if token is available
-          headers['Authorization'] = `Bearer ${token}`;
-        }
-        const response = await fetch('http://localhost:8000/products', { headers });
-        if (!response.ok) {
-          throw new Error(`Network response was not ok: ${response.statusText}`);
-        }
-        const data = await response.json();
-        setProducts(data);
-      } catch (error) {
-        setError(error.message);
-        console.error('Error fetching products:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchProducts();
-  }, [token]);
-
-  if (loading) {
-    return <div>Loading products...</div>;
-  }
-  if (error) {
-    return <div>Error: {error}</div>;
-  }
-  if (products.length === 0) {
-    return <div>No products available</div>;
-  }
-
-  return (
-    <div className="product-list-container">
-      <h1>Our Products</h1>
-      <div className="product-list">
-        {products.map(product => (
-          <div key={product.id} className="product-card">
-            <h2>{product.name}</h2>
-            <p>{product.description}</p>
-            <p>Price: ${product.price.toFixed(2)}</p>
-            <p>Category: {product.category}</p>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
 
 // Main App component
 function App() {
   const [token, setToken] = useState(localStorage.getItem('access_token') || null);
   const [userEmail, setUserEmail] = useState("");
+  const [cartItems, setCartItems] = useState([]); // New state for cart items
 
-  // function to fetch user details (Corrected: useEffect should wrap the call to fetchUserMe)
   useEffect(() => {
     if (token) {
       const fetchUserMe = async (currentToken) => {
@@ -79,20 +24,20 @@ function App() {
             setUserEmail(data.email);
           } else {
             console.error('Failed to fetch user details:', response.status);
-            handleLogout(); // Log out if token is invalid or user details can't be fetched
+            handleLogout();
           }
         } catch (error) {
           console.error('Error fetching user details:', error);
-          handleLogout(); // Log out on network error
+          handleLogout();
         }
       };
       fetchUserMe(token);
     }
-  }, [token]); // Only re-run when token changes
+  }, [token]);
 
   const handleLoginSuccess = () => {
     const newToken = localStorage.getItem('access_token');
-    setToken(newToken); // Update state to trigger re-render and user details fetch
+    setToken(newToken);
   };
 
   const handleLogout = () => {
@@ -100,15 +45,45 @@ function App() {
     localStorage.removeItem('token_type');
     setToken(null);
     setUserEmail("");
+    setCartItems([]); // Clear cart on logout
+  };
+
+  // New: Add to cart logic
+  const handleAddToCart = (productToAdd) => {
+    setCartItems(prevItems => {
+      const existingItem = prevItems.find(item => item.id === productToAdd.id);
+      if (existingItem) {
+        // If item already in cart, increment quantity
+        return prevItems.map(item =>
+          item.id === productToAdd.id ? { ...item, quantity: item.quantity + 1 } : item
+        );
+      } else {
+        // Otherwise, add new item with quantity 1
+        return [...prevItems, { ...productToAdd, quantity: 1 }];
+      }
+    });
+  };
+
+  // New: Remove from cart logic
+  const handleRemoveFromCart = (productIdToRemove) => {
+    setCartItems(prevItems => prevItems.filter(item => item.id !== productIdToRemove));
+  };
+
+  // New: Clear cart after successful order
+  const handleCreateOrderSuccess = (orderData) => {
+    // You could redirect, show a confirmation modal, etc.
+    setCartItems([]); // Clear the cart
+    // Optionally, fetch user's orders to display the new one immediately
+    // (we'll add "My Orders" in a future step)
   };
 
   return (
     <div className="App">
-      <header className="app-header"> {/* Changed to app-header for consistency with CSS */}
+      <header className="app-header">
         <h1>AI Enhanced E-commerce</h1>
         {token ? (
           <div className="user-info">
-            <span>Welcome, {userEmail || 'User'}!</span> {/* Added ! for consistency */}
+            <span>Welcome, {userEmail || 'User'}!</span>
             <button onClick={handleLogout}>Logout</button>
           </div>
         ) : null}
@@ -118,9 +93,16 @@ function App() {
         <Auth onLoginSuccess={handleLoginSuccess} />
       ) : (
         <>
-          {/* If logged in, show product list and other features */}
-          <ProductList token={token} />
-          {/* More features like 'Create Order', 'My Orders' will go here */}
+          {/* Product List */}
+          <ProductList token={token} onAddToCart={handleAddToCart} />
+
+          {/* Cart Component */}
+          <Cart
+            cartItems={cartItems}
+            onRemoveFromCart={handleRemoveFromCart}
+            onCreateOrder={handleCreateOrderSuccess}
+            token={token} // Pass token to Cart for authenticated order creation
+          />
         </>
       )}
     </div>
