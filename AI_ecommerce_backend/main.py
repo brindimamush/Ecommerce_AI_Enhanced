@@ -10,14 +10,18 @@ from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import BaseModel
 from datetime import datetime, timedelta
 
-from typing import Annotated
+from typing import Annotated, List
 from fastapi.middleware.cors import CORSMiddleware
+
+from ai_service import ai_service
+
 #pydentic schema for creating a product(request body)
 class ProductCreate(BaseModel):
     name: str
     description: str
     price: float
     category: str
+    stock: int = 0
 
 #pydentic schema for reading a product(response model)
 class ProductResponse(BaseModel):
@@ -26,6 +30,7 @@ class ProductResponse(BaseModel):
     description: str
     price: float
     category: str
+    stock: int
 
     class Config:
         from_attributes = True
@@ -132,11 +137,11 @@ async def read_root():
     return {"message": "Welcome to the AI-Enhanced E-commerce API!"}
 
 @app.get("/products", response_model=list[ProductResponse])
-async def get_products(db: Session = Depends(database.get_db)):
+async def get_products(skip: int = 0, limit: int= 100,db: Session = Depends(database.get_db)):
     """
     Retrieve a list of all products.
     """
-    products = db.query(models.Product).all()
+    products = db.query(models.Product).offset(skip).limit(limit).all()
     return products
 
 @app.get("/users/me", response_model=UserResponse)
@@ -158,6 +163,55 @@ async def get_product(product_id: int, sb: Session = Depends(database.get_db)):
     if product is None:
         raise HTTPException(status_code=404, detail="Product not found")
     return product
+
+# New AI Search Endpoint
+@app.get("/products/search", response_model=List[ProductResponse])
+async def search_products(
+    query: str,
+    limit: int = 5
+):
+    """
+    Searches for products using the AI embedding model based on a text query.
+    """
+    if not query:
+        raise HTTPException(status_code=400, detail="Query text cann't be empty.")
+    # Use the AI service to search
+    # ai_service.search_products returns a list of dictionaries that match ProductResponse
+    similar_products_data = ai_service.search_products(query_text=query, k=limit)
+
+    # Convert the dicts back to ProductResponse models for validation/serialization
+    return [ProductResponse(**p) for p in similar_products_data]
+
+@app.get("/orders", response_model=list[OrderResponse])
+async def get_my_orders(
+    current_user: Annotated[models.User, Depends(auth.get_current_user)],
+    db: Session = Depends(database.get_db),
+    
+):
+    orders = db.query(models.Order).filter(models.Order.user_id == current_user.id).options(joinedload(models.Order.items).joinedload(models.OrderItem.product)
+    ).all()
+
+    # Manually populate product_name for each order item as it's not directly in model
+    for order in orders:
+        for item in order.items:
+            if item.product:
+                item.product_name = item.product.name
+            else:
+                item.product_name = "Unknown Product" # Fallback if product not found
+
+    return orders
+
+@app.get("/orders/{order_id}", response_model=OrderResponse)
+async def get_order_by_id(
+    order_id: int,
+    current_user: Annotated[models.User, Depends(auth.get_current_user)],
+    db: Session = Depends(database.get_db)
+):
+    order = db.query(models.Order).filter(models.Order.id == order_id, models.Order.user_id == current_user.id).first()
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    return order
+
 """
 
 Below is the route using POST method
@@ -165,7 +219,7 @@ Below is the route using POST method
 
 """
 
-@app.post("/products", response_model=ProductResponse)
+@app.post("/products", response_model=ProductResponse, status_code=status.HTTP_201_CREATED)
 async def create_product(
     product: ProductCreate,
     current_user: Annotated[models.User, Depends(auth.get_current_user)], # Moved
@@ -251,22 +305,3 @@ async def create_order(
     
     return db_order
 
-@app.get("/orders/", response_model=list[OrderResponse])
-async def get_my_orders(
-    current_user: Annotated[models.User, Depends(auth.get_current_user)],
-    db: Session = Depends(database.get_db),
-    
-):
-    orders = db.query(models.Order).filter(models.Order.user_id == current_user.id).all()
-    return orders
-
-@app.get("/orders/{order_id}", response_model=OrderResponse)
-async def get_order_by_id(
-    order_id: int,
-    current_user: Annotated[models.User, Depends(auth.get_current_user)],
-    db: Session = Depends(database.get_db)
-):
-    order = db.query(models.Order).filter(models.Order.id == order_id, models.Order.user_id == current_user.id).first()
-    if not order:
-        raise HTTPException(status_code=404, detail="Order not found")
-    return order
