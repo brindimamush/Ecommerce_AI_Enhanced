@@ -1,9 +1,9 @@
-from sentence_transformers import sentence_transformers
+from sentence_transformers import SentenceTransformer
 import faiss
-import numpy as numpy
+import numpy as np
 import os
 import json
-import typing import List, Dict
+from typing import List, Dict
 
 #Configuration
 EMBEDDING_MODEL_NAME = 'all-MiniLM-L6-v2' #A small fast model for embeddings
@@ -17,9 +17,9 @@ class AIService:
     _product_data = None # Store product_id -> metadata for FAISS lookup
 
     def __new__(cls):
-        if cls.instance is None:
+        if cls._instance is None:
             cls._instance = super(AIService, cls).__new__(cls)
-            cls.__instance.initialize()
+            cls._instance.initialize()
         return cls._instance
 
     def initialize(self):

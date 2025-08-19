@@ -2,12 +2,14 @@
 import { useState, useEffect } from 'react';
 
 // Add onAddToCart prop
-function ProductList({ token, onAddToCart }) {
+function ProductList({ token, onAddToCart , productsToDisplay}) {
   const [products, setProducts] = useState([]);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (productsToDisplay === null) { // Only fetch if not in search mode
+     
     const fetchProducts = async () => {
       try {
         const headers = {};
@@ -15,7 +17,7 @@ function ProductList({ token, onAddToCart }) {
           headers['Authorization'] = `Bearer ${token}`;
         }
 
-        const response = await fetch('http://localhost:8000/products', { headers });
+        const response = await fetch('http://localhost:8000/products/', { headers });
         if (!response.ok) {
           throw new Error(`Network response was not ok: ${response.statusText}`);
         }
@@ -30,7 +32,14 @@ function ProductList({ token, onAddToCart }) {
     };
 
     fetchProducts();
-  }, [token]);
+  }else {
+    // If productsToDisplay is provided (i.e., we are in search mode),
+      // update internal state with search results
+      setProducts(productsToDisplay);
+      setLoading(false); // No loading needed as data is passed
+      setError(null); // Clear any previous error
+  }
+  }, [token, productsToDisplay]);// Re-run if token or productsToDisplay changes
 
   if (loading) return <div>Loading products...</div>;
   if (error) return <div>Error: {error}</div>;
@@ -38,7 +47,7 @@ function ProductList({ token, onAddToCart }) {
 
   return (
     <div className="product-list-container">
-      <h1>Our Products</h1>
+      <h1>{productsToDisplay ? "Search Results" : "All Products"}</h1> {/* Dynamic title */}
       <div className="product-list">
         {products.map(product => (
           <div key={product.id} className="product-card">
@@ -46,7 +55,6 @@ function ProductList({ token, onAddToCart }) {
             <p>{product.description}</p>
             <p>Price: ${product.price.toFixed(2)}</p>
             <p>Category: {product.category}</p>
-            {/* Add to Cart button */}
             <button
               onClick={() => onAddToCart(product)}
               className="add-to-cart-btn"

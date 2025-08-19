@@ -136,7 +136,7 @@ def on_startup():
 async def read_root():
     return {"message": "Welcome to the AI-Enhanced E-commerce API!"}
 
-@app.get("/products", response_model=list[ProductResponse])
+@app.get("/products/", response_model=list[ProductResponse])
 async def get_products(skip: int = 0, limit: int= 100,db: Session = Depends(database.get_db)):
     """
     Retrieve a list of all products.
@@ -144,7 +144,7 @@ async def get_products(skip: int = 0, limit: int= 100,db: Session = Depends(data
     products = db.query(models.Product).offset(skip).limit(limit).all()
     return products
 
-@app.get("/users/me", response_model=UserResponse)
+@app.get("/users/me/", response_model=UserResponse)
 async def read_users_me(current_user: Annotated[models.User, Depends(auth.get_current_user)]):
     return current_user
 
@@ -165,7 +165,7 @@ async def get_product(product_id: int, sb: Session = Depends(database.get_db)):
     return product
 
 # New AI Search Endpoint
-@app.get("/products/search", response_model=List[ProductResponse])
+@app.get("/products/search/", response_model=List[ProductResponse])
 async def search_products(
     query: str,
     limit: int = 5
@@ -182,7 +182,7 @@ async def search_products(
     # Convert the dicts back to ProductResponse models for validation/serialization
     return [ProductResponse(**p) for p in similar_products_data]
 
-@app.get("/orders", response_model=list[OrderResponse])
+@app.get("/orders/", response_model=list[OrderResponse])
 async def get_my_orders(
     current_user: Annotated[models.User, Depends(auth.get_current_user)],
     db: Session = Depends(database.get_db),
@@ -219,7 +219,7 @@ Below is the route using POST method
 
 """
 
-@app.post("/products", response_model=ProductResponse, status_code=status.HTTP_201_CREATED)
+@app.post("/products/", response_model=ProductResponse, status_code=status.HTTP_201_CREATED)
 async def create_product(
     product: ProductCreate,
     current_user: Annotated[models.User, Depends(auth.get_current_user)], # Moved
@@ -228,14 +228,22 @@ async def create_product(
     """
     Add a new product to the catalog.
     """
-    db_product = models.Product(**product.dict())#Create SQLALCHEMY model instance
+    db_product = models.Product(**product.model_dump())#Create SQLALCHEMY model instance
     db.add(db_product)  # Add the product to the session
     db.commit()  # Commit the transaction
     db.refresh(db_product)  # Refresh the instance to get the new ID and other defaults
+    # print("DEBUG: Attempting to add product to AI index...") # Add this debug print
+    # ai_service.add_products_to_index([db_product.__dict__])
+    # print("DEBUG: Finished attempt to add product to AI index.") # Add this debug print
+    product_data_for_ai = ProductResponse.model_validate(db_product).model_dump()
+
+    print("DEBUG: Attempting to add product to AI index...")
+    ai_service.add_products_to_index([product_data_for_ai]) # Pass the clean dict
+    print("DEBUG: Finished attempt to add product to AI index.")
     return db_product
 
 
-@app.post("/register", response_model=UserResponse)
+@app.post("/register/", response_model=UserResponse)
 async def register_user(user: UserCreate, db: Session = Depends(database.get_db)):
     db_user = db.query(models.User).filter(models.User.email == user.email).first()
     if db_user:
@@ -248,7 +256,7 @@ async def register_user(user: UserCreate, db: Session = Depends(database.get_db)
     db.refresh(db_user)
     return db_user
 
-@app.post("/token", response_model=Token)
+@app.post("/token/", response_model=Token)
 async def login_for_access_token(
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
     db: Session = Depends(database.get_db)
@@ -267,7 +275,7 @@ async def login_for_access_token(
     return {"access_token": access_token, "token_type": "bearer"}
 
 
-@app.post("/orders", response_model=OrderResponse)
+@app.post("/orders/", response_model=OrderResponse)
 async def create_order(
     order: OrderCreate,
     current_user: Annotated[models.User, Depends(auth.get_current_user)],

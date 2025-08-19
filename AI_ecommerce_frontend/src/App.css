@@ -154,3 +154,46 @@
 .create-order-btn:hover {
     background-color: #0056b3;
 }
+/* src/App.css */
+.search-bar {
+    margin: 20px auto;
+    max-width: 600px;
+    text-align: center;
+}
+
+.search-input {
+    width: calc(100% - 180px); /* Adjust based on button width */
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px 0 0 5px; /* Rounded left corners */
+    font-size: 1em;
+    outline: none;
+    vertical-align: middle;
+}
+
+.search-button, .clear-search-button {
+    padding: 10px 15px;
+    border: none;
+    border-radius: 0 5px 5px 0; /* Rounded right corners */
+    background-color: #007bff;
+    color: white;
+    cursor: pointer;
+    font-size: 1em;
+    transition: background-color 0.3s ease;
+    vertical-align: middle;
+    margin-left: -1px; /* To prevent double border */
+}
+
+.search-button:hover, .clear-search-button:hover {
+    background-color: #0056b3;
+}
+
+.clear-search-button {
+    background-color: #6c757d; /* Grey */
+    border-radius: 5px; /* Fully rounded */
+    margin-left: 10px;
+}
+
+.clear-search-button:hover {
+    background-color: #5a6268;
+}

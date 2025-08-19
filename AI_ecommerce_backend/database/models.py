@@ -2,6 +2,7 @@ from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime
 from .database import Base
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
+from datetime import datetime
 
 class Product(Base):
     __tablename__ = "products"
@@ -11,6 +12,7 @@ class Product(Base):
     description = Column(String)
     price = Column(Float)
     category = Column(String, index=True)
+    stock = Column(Integer, default=0)
 
     #Relationship to order items
     order_items = relationship("OrderItem", back_populates="product")
